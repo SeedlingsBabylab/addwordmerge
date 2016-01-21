@@ -35,10 +35,61 @@ def parse_new_file(type):
                 new_audiofile_data.append(row)
 
 def merge_audio():
-    print "hello"
+    for element in new_audiofile_data:
+        indices = find_all_with_timestamp_audio(element[5],
+                                                old_audiofile_data)
+
+        # find the correct index. elements with the same timestamp could
+        # be different words, with different basic_levels. If there is a
+        # -1 in the indices list, this means this a new entry, not originally
+        # in the old csv file
+        olddata_index = None
+        for index in indices:
+            if index == -1:
+                break
+            if old_audiofile_data[index][1] == element[1]:
+                olddata_index = index
+                # if none of the found timestamps have words equal to the
+                # current element, then this is a new word that happens to
+                # share timestamps with other words. olddata_index is still None
+
+        # still haven't found it, must be a new entry
+        if olddata_index is None:
+            merge_data = element
+            merge_data[6] = "FIX ME"
+            audio_merge_data.append(merge_data)
+            continue
+
+        merge_data = old_audiofile_data[olddata_index]
+        audio_merge_data.append(merge_data)
 
 def merge_video():
     print "hello"
+
+def find_all_with_timestamp_audio(timestamp, data):
+    found = []
+    for index, element in enumerate(data):
+        if element[5] == timestamp:
+            found.append(index)
+    if not found:
+        found.append(-1)
+    return found
+
+def output_merged_audiocsv(path):
+    with open(path, "wb") as file:
+        writer = csv.writer(file)
+        writer.writerow(["tier", "word", "utterance_type",
+                        "object_present", "speaker", "timestamp",
+                        "basic_level", "comment"])
+        writer.writerows(audio_merge_data)
+#
+# def output_merged_videocsv(path):
+#
+
+
+# def check_audio_diff():
+#     print "hello"
+
 
 def figure_out_filetype(file):
     with open(file, "rU") as file:
@@ -58,20 +109,10 @@ def figure_out_filetype(file):
     if audio_csv:
         return "audio"
 
-def check_audio_timestamps():
-    old_file_timestamps = [entry[5] for entry in old_audiofile_data]
-    new_file_timestamps = [entry[5] for entry in new_audiofile_data]
-    for index, timestamp in enumerate(old_file_timestamps):
-        if timestamp not in new_file_timestamps:
-            print "Timestamp at line: " + index + "  is only in the old file. Not found in new file\n"
-    for index, timestamp in enumerate(new_file_timestamps):
-        if timestamp not in old_file_timestamps:
-            print "Timestamp at line: " + index + "  is only in the new file. Not found in old file\n"
-            
 if __name__ == "__main__":
-
     old_file = sys.argv[1]
     new_file = sys.argv[2]
+    output = sys.argv[3]
 
     old_file_type = figure_out_filetype(old_file)
     new_file_type = figure_out_filetype(new_file)
@@ -90,5 +131,7 @@ if __name__ == "__main__":
 
     if old_file_type == "video":
         merge_video()
+        output_merged_videocsv(output)
     else:
         merge_audio()
+        output_merged_audiocsv(output)
