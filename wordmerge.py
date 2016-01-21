@@ -64,7 +64,24 @@ def merge_audio():
         audio_merge_data.append(merge_data)
 
 def merge_video():
-    print "hello"
+    for element in new_videofile_data:
+        indicies = find_all_with_timestamp_video([element[1], element[2]],
+                                                    old_videofile_data)
+        olddata_index = None
+        for index in indicies:
+            if index == -1:
+                break
+            if old_videofile_data[index][3] == element[3]:
+                olddata_index = index
+
+        if olddata_index is None:
+            merge_data = element
+            merge_data[7] = "FIX ME"
+            video_merge_data.append(merge_data)
+            continue
+
+        merge_data = old_videofile_data[olddata_index]
+        video_merge_data.append(merge_data)
 
 def find_all_with_timestamp_audio(timestamp, data):
     found = []
@@ -75,6 +92,18 @@ def find_all_with_timestamp_audio(timestamp, data):
         found.append(-1)
     return found
 
+def find_all_with_timestamp_video(timestamp, data):
+    found =[]
+    for index, element in enumerate(data):
+        if element[1] == timestamp[0] and\
+            element[2] == timestamp[1]:
+            found.append(index)
+    if not found:
+        found.append(-1)
+    return found
+
+
+
 def output_merged_audiocsv(path):
     with open(path, "wb") as file:
         writer = csv.writer(file)
@@ -82,9 +111,16 @@ def output_merged_audiocsv(path):
                         "object_present", "speaker", "timestamp",
                         "basic_level", "comment"])
         writer.writerows(audio_merge_data)
-#
-# def output_merged_videocsv(path):
-#
+
+def output_merged_videocsv(path):
+    with open(path, "wb") as file:
+        writer = csv.writer(file)
+        writer.writerow(["labeled_object.ordinal", "labeled_object.onset",
+                         "labeled_object.offset", "labeled_object.object",
+                         "labeled_object.utterance_type",
+                         "labeled_object.object_present",
+                         "labeled_object.speaker", "labeled_object.basic_level"])
+        writer.writerows(video_merge_data)
 
 
 # def check_audio_diff():
