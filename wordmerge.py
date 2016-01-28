@@ -144,7 +144,7 @@ def output_diffs():
                                                                         "_diffs.csv"))
     with open(out_path, "wb") as file:
         writer = csv.writer(file)
-        writer.writerow(["original_csv_index", "old_new", "entry", "diff_indices"])
+        writer.writerow(["original_csv_index", "old_new", "entry", "diff_indices", "ok?"])
         for element in diffs:
             writer.writerow([element[0], "old", element[1][0], "-".join(element[2])])
             writer.writerow([element[0], "new", element[1][1], "-".join(element[2])])
