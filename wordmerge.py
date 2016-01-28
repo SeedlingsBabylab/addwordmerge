@@ -1,5 +1,6 @@
 import csv
 import sys
+import os
 
 old_file = ""
 new_file = ""
@@ -11,6 +12,9 @@ audio_merge_data = []
 old_videofile_data = []
 new_videofile_data = []
 video_merge_data = []
+
+# diffs = (index, [old_row, new_row], diff_indices[])
+diffs = []
 
 def parse_old_file(type):
     with open(old_file, "rU") as file:
@@ -35,7 +39,7 @@ def parse_new_file(type):
                 new_audiofile_data.append(row)
 
 def merge_audio():
-    for element in new_audiofile_data:
+    for index, element in enumerate(new_audiofile_data):
         indices = find_all_with_timestamp_audio(element[5],
                                                 old_audiofile_data)
 
@@ -56,11 +60,12 @@ def merge_audio():
         # still haven't found it, must be a new entry
         if olddata_index is None:
             merge_data = element
-            merge_data[6] = "FIX ME"
+            merge_data[6] = "***FIX ME***"
             audio_merge_data.append(merge_data)
             continue
 
         merge_data = old_audiofile_data[olddata_index]
+        diff_audio(index, merge_data, element)
         audio_merge_data.append(merge_data)
 
 def merge_video():
@@ -76,11 +81,12 @@ def merge_video():
 
         if olddata_index is None:
             merge_data = element
-            merge_data[7] = "FIX ME"
+            merge_data[7] = "***FIX ME***"
             video_merge_data.append(merge_data)
             continue
 
         merge_data = old_videofile_data[olddata_index]
+        diff_video(index, merge_data, element)
         video_merge_data.append(merge_data)
 
 def find_all_with_timestamp_audio(timestamp, data):
@@ -103,7 +109,6 @@ def find_all_with_timestamp_video(timestamp, data):
     return found
 
 
-
 def output_merged_audiocsv(path):
     with open(path, "wb") as file:
         writer = csv.writer(file)
@@ -111,6 +116,12 @@ def output_merged_audiocsv(path):
                         "object_present", "speaker", "timestamp",
                         "basic_level", "comment"])
         writer.writerows(audio_merge_data)
+
+    if diffs:
+        print "\nThere were other changes in the new file besides additions"
+        print "Please check them in the diffs.csv file that was just made\n"
+
+        output_diffs()
 
 def output_merged_videocsv(path):
     with open(path, "wb") as file:
@@ -122,10 +133,21 @@ def output_merged_videocsv(path):
                          "labeled_object.speaker", "labeled_object.basic_level"])
         writer.writerows(video_merge_data)
 
+    if diffs:
+        print "\nThere were other changes in the new file besides additions"
+        print "Please check them in the diffs.csv file that was just made\n"
 
-# def check_audio_diff():
-#     print "hello"
+        output_diffs()
 
+def output_diffs():
+    out_path = os.path.join("diffs", os.path.split(new_file)[1].replace(".csv",
+                                                                        "_diffs.csv"))
+    with open(out_path, "wb") as file:
+        writer = csv.writer(file)
+        writer.writerow(["original_csv_index", "old_new", "entry", "diff_indices"])
+        for element in diffs:
+            writer.writerow([element[0], "old", element[1][0], "-".join(element[2])])
+            writer.writerow([element[0], "new", element[1][1], "-".join(element[2])])
 
 def figure_out_filetype(file):
     with open(file, "rU") as file:
@@ -145,6 +167,23 @@ def figure_out_filetype(file):
     if audio_csv:
         return "audio"
 
+def diff_audio(line, old, new):
+    diff_indices = []
+    for index, element in enumerate(old):
+        if new[index] != element and index != 6:
+            diff_indices.append(str(index))
+    if diff_indices:
+        diffs.append((line, [old, new], diff_indices))
+
+def diff_video(line, old, new):
+    diff_indices = []
+    for index, element in enumerate(old):
+        if new[index] != element and index != 7 and index != 0:
+            diff_indices.append(str(index))
+    if diff_indices:
+        diffs.append((line, [old, new], diff_indices))
+
+
 if __name__ == "__main__":
     old_file = sys.argv[1]
     new_file = sys.argv[2]
@@ -161,9 +200,9 @@ if __name__ == "__main__":
 
     parse_old_file(old_file_type)
     parse_new_file(new_file_type)
-
-    print "\nold_file_type = " + old_file_type
-    print "new_file_type = " + new_file_type
+    #
+    # print "\nold_file_type = " + old_file_type
+    # print "new_file_type = " + new_file_type
 
     if old_file_type == "video":
         merge_video()
@@ -171,3 +210,5 @@ if __name__ == "__main__":
     else:
         merge_audio()
         output_merged_audiocsv(output)
+
+
