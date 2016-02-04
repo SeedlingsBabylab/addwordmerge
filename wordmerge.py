@@ -76,8 +76,8 @@ def merge_video():
         for index in indicies:
             if index == -1:
                 break
-            if old_videofile_data[index][3] == element[3]:
-                olddata_index = index
+            if old_videofile_data[index-2][3] == element[3]:
+                olddata_index = index-2
 
         if olddata_index is None:
             merge_data = element
@@ -103,7 +103,7 @@ def find_all_with_timestamp_video(timestamp, data):
     for index, element in enumerate(data):
         if element[1] == timestamp[0] and\
             element[2] == timestamp[1]:
-            found.append(index)
+            found.append(index+2)
     if not found:
         found.append(-1)
     return found
@@ -121,7 +121,7 @@ def output_merged_audiocsv(path):
         print "\nThere were other changes in the new file besides additions"
         print "Please check them in the diffs.csv file that was just made\n"
 
-        output_diffs()
+        output_audio_diffs()
 
 def output_merged_videocsv(path):
     with open(path, "wb") as file:
@@ -137,17 +137,36 @@ def output_merged_videocsv(path):
         print "\nThere were other changes in the new file besides additions"
         print "Please check them in the diffs.csv file that was just made\n"
 
-        output_diffs()
+        output_video_diffs()
 
-def output_diffs():
+def output_audio_diffs():
     out_path = os.path.join("diffs", os.path.split(new_file)[1].replace(".csv",
                                                                         "_diffs.csv"))
     with open(out_path, "wb") as file:
         writer = csv.writer(file)
-        writer.writerow(["original_csv_index", "old_new", "entry", "diff_indices", "ok?"])
+        writer.writerow(["original_csv_index", "old_new", "entry", "diff_indices",
+                         "tier","word","utterance_type","object_present","speaker","timestamp"])
         for element in diffs:
+            diff_row = [" "]*7
+            for index in element[2]:
+                diff_row[int(index)] = "+++"
             writer.writerow([element[0], "old", element[1][0], "-".join(element[2])])
-            writer.writerow([element[0], "new", element[1][1], "-".join(element[2])])
+            writer.writerow([element[0], "new", element[1][1], "-".join(element[2])]+diff_row)
+
+def output_video_diffs():
+    out_path = os.path.join("diffs", os.path.split(new_file)[1].replace(".csv",
+                                                                        "_diffs.csv"))
+    with open(out_path, "wb") as file:
+        writer = csv.writer(file)
+        writer.writerow(["original_csv_index", "old_new", "entry", "diff_indices",
+                         "ordinal","onset","offset","object","utterance_type",
+                         "object_present","speaker"])
+        for element in diffs:
+            diff_row = [" "]*8
+            for index in element[2]:
+                diff_row[int(index)] = "+++"
+            writer.writerow([element[0], "old", element[1][0], "-".join(element[2])])
+            writer.writerow([element[0], "new", element[1][1], "-".join(element[2])]+diff_row)
 
 def figure_out_filetype(file):
     with open(file, "rU") as file:
