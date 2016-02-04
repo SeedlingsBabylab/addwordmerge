@@ -119,7 +119,8 @@ def output_merged_audiocsv(path):
 
     if diffs:
         print "\nThere were other changes in the new file besides additions"
-        print "Please check them in the diffs.csv file that was just made\n"
+        print "Please check them in the diffs.csv file that was just made"
+        print "It's in the /diffs folder in this script's directory\n"
 
         output_audio_diffs()
 
@@ -135,7 +136,8 @@ def output_merged_videocsv(path):
 
     if diffs:
         print "\nThere were other changes in the new file besides additions"
-        print "Please check them in the diffs.csv file that was just made\n"
+        print "Please check them in the diffs.csv file that was just made"
+        print "It's in the /diffs folder in this script's directory\n"
 
         output_video_diffs()
 
