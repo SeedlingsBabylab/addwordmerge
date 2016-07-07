@@ -65,7 +65,10 @@ def merge_audio():
             continue
 
         merge_data = old_audiofile_data[olddata_index]
-        diff_audio(index, merge_data, element)
+        diff_result = diff_audio(index, merge_data, element)
+        # if diff_result:
+        #     audio_merge_data.append(diff_result)
+        # else:
         audio_merge_data.append(merge_data)
 
 def merge_video():
@@ -81,12 +84,18 @@ def merge_video():
 
         if olddata_index is None:
             merge_data = element
-            merge_data[7] = "***FIX ME***"
+            if "%com" in merge_data[3]:
+                merge_data[7] = "NA"
+            else:
+                merge_data[7] = "***FIX ME***"
             video_merge_data.append(merge_data)
             continue
 
         merge_data = old_videofile_data[olddata_index]
-        diff_video(index, merge_data, element)
+        diff_result = diff_video(index, merge_data, element)
+        # if diff_result:
+        #     video_merge_data.append(diff_result)
+        # else:
         video_merge_data.append(merge_data)
 
 def find_all_with_timestamp_audio(timestamp, data):
@@ -195,6 +204,10 @@ def diff_audio(line, old, new):
             diff_indices.append(str(index))
     if diff_indices:
         diffs.append((line, [old, new], diff_indices))
+        new[6] = old[6]
+        return new
+    else:
+        return None
 
 def diff_video(line, old, new):
     diff_indices = []
@@ -203,6 +216,10 @@ def diff_video(line, old, new):
             diff_indices.append(str(index))
     if diff_indices:
         diffs.append((line, [old, new], diff_indices))
+        new[7] = old[7]
+        return new
+    else:
+        return None
 
 
 if __name__ == "__main__":
