@@ -40,8 +40,8 @@ def parse_new_file(type):
 
 def merge_audio():
     for index, element in enumerate(new_audiofile_data):
-        indices = find_all_with_timestamp_audio(element[5],
-                                                old_audiofile_data)
+        indices = find_all_match_audio(element,
+                                       old_audiofile_data)
 
         # find the correct index. elements with the same timestamp could
         # be different words, with different basic_levels. If there is a
@@ -66,15 +66,15 @@ def merge_audio():
 
         merge_data = old_audiofile_data[olddata_index]
         diff_result = diff_audio(index, merge_data, element)
-        # if diff_result:
-        #     audio_merge_data.append(diff_result)
-        # else:
-        audio_merge_data.append(merge_data)
+        if diff_result:
+            audio_merge_data.append(diff_result)
+        else:
+            audio_merge_data.append(merge_data)
 
 def merge_video():
-    for element in new_videofile_data:
-        indicies = find_all_with_timestamp_video([element[1], element[2]],
-                                                    old_videofile_data)
+    for index, element in enumerate(new_videofile_data):
+        indicies = find_all_match_video(element,
+                                        old_videofile_data)
         olddata_index = None
         for index in indicies:
             if index == -1:
@@ -93,37 +93,49 @@ def merge_video():
 
         merge_data = old_videofile_data[olddata_index]
         diff_result = diff_video(index, merge_data, element)
-        # if diff_result:
-        #     video_merge_data.append(diff_result)
-        # else:
-        video_merge_data.append(merge_data)
+        if diff_result:
+            video_merge_data.append(diff_result)
+        else:
+            video_merge_data.append(merge_data)
 
-def find_all_with_timestamp_audio(timestamp, data):
-    found = []
+def find_all_match_audio(entry, data):
+    found =[]
     for index, element in enumerate(data):
-        if element[5] == timestamp:
+        if audio_match(entry, element):
             found.append(index)
     if not found:
         found.append(-1)
     return found
 
-def find_all_with_timestamp_video(timestamp, data):
+def find_all_match_video(entry, data):
     found =[]
     for index, element in enumerate(data):
-        if element[1] == timestamp[0] and\
-            element[2] == timestamp[1]:
+        if video_match(entry, element):
             found.append(index+2)
     if not found:
         found.append(-1)
     return found
 
+def audio_match(new_item, old_item):
+    if new_item[0] == old_item[0] and \
+       new_item[1] == old_item[1] and \
+       new_item[5] == old_item[5]:
+        return True
+    return False
+
+def video_match(new_item, old_item):
+    if new_item[1] == old_item[1] and \
+       new_item[2] == old_item[2] and \
+       new_item[3] == old_item[3]:
+        return True
+    return False
 
 def output_merged_audiocsv(path):
     with open(path, "wb") as file:
         writer = csv.writer(file)
         writer.writerow(["tier", "word", "utterance_type",
                         "object_present", "speaker", "timestamp",
-                        "basic_level", "comment"])
+                        "basic_level"])
         writer.writerows(audio_merge_data)
 
     if diffs:
