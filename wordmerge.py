@@ -85,9 +85,9 @@ def merge_video():
         if olddata_index is None:
             merge_data = element
             if "%com" in merge_data[3]:
-                merge_data[7] = "NA"
+                merge_data.append("NA")
             else:
-                merge_data[7] = "***FIX ME***"
+                merge_data.append("***FIX ME***")
             video_merge_data.append(merge_data)
             continue
 
@@ -223,12 +223,12 @@ def diff_audio(line, old, new):
 
 def diff_video(line, old, new):
     diff_indices = []
-    for index, element in enumerate(old):
+    for index, element in enumerate(old[:7]):
         if new[index] != element and index != 7 and index != 0:
             diff_indices.append(str(index))
     if diff_indices:
         diffs.append((line, [old, new], diff_indices))
-        new[7] = old[7]
+        new.append(old[7])
         return new
     else:
         return None
