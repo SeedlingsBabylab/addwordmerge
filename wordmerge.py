@@ -79,15 +79,21 @@ def merge_video():
         for index in indicies:
             if index == -1:
                 break
-            if old_videofile_data[index-2][3] == element[3]:
-                olddata_index = index-2
+            if old_videofile_data[index][3] == element[3]:
+                olddata_index = index
 
         if olddata_index is None:
             merge_data = element
             if "%com" in merge_data[3]:
-                merge_data.append("NA")
+                if len(merge_data) == 8:
+                    merge_data[7] = "NA"
+                elif len(merge_data) == 7:
+                    merge_data.append("NA")
             else:
-                merge_data.append("***FIX ME***")
+                if len(merge_data) == 8:
+                    merge_data[7] = "***FIX ME***"
+                elif len(merge_data) == 7:
+                    merge_data.append("***FIX ME***")
             video_merge_data.append(merge_data)
             continue
 
@@ -111,7 +117,7 @@ def find_all_match_video(entry, data):
     found =[]
     for index, element in enumerate(data):
         if video_match(entry, element):
-            found.append(index+2)
+            found.append(index)
     if not found:
         found.append(-1)
     return found
@@ -228,11 +234,23 @@ def diff_video(line, old, new):
             diff_indices.append(str(index))
     if diff_indices:
         diffs.append((line, [old, new], diff_indices))
-        new.append(old[7])
+        if len(new) == 8:
+            new[7] = old[7]
+        elif len[new] == 7:
+            new.append(old[7])
         return new
     else:
         return None
 
+def rewrite_video_ordinals():
+    global video_merge_data
+    sorted_data = sorted(video_merge_data, key=lambda data: int(data[1]))
+    new_data = []
+    for index, value in enumerate(sorted_data):
+        value[0] = str(index)
+        new_data.append(value)
+
+    video_merge_data = new_data
 
 if __name__ == "__main__":
     old_file = sys.argv[1]
@@ -256,6 +274,7 @@ if __name__ == "__main__":
 
     if old_file_type == "video":
         merge_video()
+        rewrite_video_ordinals()
         output_merged_videocsv(output)
     else:
         merge_audio()
