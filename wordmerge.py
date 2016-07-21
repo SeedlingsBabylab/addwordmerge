@@ -144,10 +144,21 @@ def output_merged_audiocsv(path):
                         "basic_level"])
         writer.writerows(audio_merge_data)
 
-    if diffs:
+    if diffs and not batch_process:
         print "\nThere were other changes in the new file besides additions"
         print "Please check them in the diffs.csv file that was just made"
         print "It's in the /diffs folder in this script's directory\n"
+
+        problems = find_problem_diffs_audio()
+        if problems:
+            print "\n\nThere were diffs that require manual updates:\n\n"
+            print problems
+        output_audio_diffs()
+
+    elif batch_process:
+        problems = find_problem_diffs_audio()
+        if problems:
+            print problems
 
         output_audio_diffs()
 
@@ -161,12 +172,24 @@ def output_merged_videocsv(path):
                          "labeled_object.speaker", "labeled_object.basic_level"])
         writer.writerows(video_merge_data)
 
-    if diffs:
+    if diffs and not batch_process:
         print "\nThere were other changes in the new file besides additions"
         print "Please check them in the diffs.csv file that was just made"
         print "It's in the /diffs folder in this script's directory\n"
 
+        problems = find_problem_diffs_audio()
+        if problems:
+            print "\n\nThere were diffs that require manual updates:\n\n"
+            print problems
+
         output_video_diffs()
+    elif batch_process:
+        problems = find_problem_diffs_video()
+        if problems:
+            print problems
+
+        output_video_diffs()
+
 
 def output_audio_diffs():
     out_path = os.path.join("diffs", os.path.split(new_file)[1].replace(".csv",
@@ -236,7 +259,7 @@ def diff_video(line, old, new):
         diffs.append((line, [old, new], diff_indices))
         if len(new) == 8:
             new[7] = old[7]
-        elif len[new] == 7:
+        elif len(new) == 7:
             new.append(old[7])
         return new
     else:
@@ -252,10 +275,48 @@ def rewrite_video_ordinals():
 
     video_merge_data = new_data
 
+def find_problem_diffs_audio():
+    problems = []
+
+    curr_index = 0
+    for index, diff in enumerate(diffs):
+        for comp_diff in diffs[index+1:]:
+            if diff_match_video(diff, comp_diff):
+                problems.append(diff)
+    return problems
+
+def find_problem_diffs_video():
+    problems = []
+    for index, diff in enumerate(diffs):
+        for comp_diff in diffs[index+1:]:
+            if diff_match_video(diff, comp_diff):
+                problems.append(diff)
+    return problems
+
+def diff_match_audio(diff, comp_diff):
+    if diff[1][0][1] == comp_diff[1][0][1] and \
+       diff[1][0][2] == comp_diff[1][0][2] and \
+       diff[1][0][3] == comp_diff[1][0][3]:
+        return True
+    return False
+
+def diff_match_video(diff, comp_diff):
+    if diff[1][0][1] == comp_diff[1][0][1] and \
+       diff[1][0][2] == comp_diff[1][0][2] and \
+       diff[1][0][3] == comp_diff[1][0][3]:
+        return True
+    return False
+
+
+
 if __name__ == "__main__":
     old_file = sys.argv[1]
     new_file = sys.argv[2]
     output = sys.argv[3]
+
+    batch_process = False
+    if len(sys.argv) == 5:
+        batch_process = True
 
     old_file_type = figure_out_filetype(old_file)
     new_file_type = figure_out_filetype(new_file)
@@ -276,6 +337,7 @@ if __name__ == "__main__":
         merge_video()
         rewrite_video_ordinals()
         output_merged_videocsv(output)
+
     else:
         merge_audio()
         output_merged_audiocsv(output)
