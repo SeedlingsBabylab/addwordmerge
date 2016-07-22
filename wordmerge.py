@@ -15,6 +15,7 @@ video_merge_data = []
 
 # diffs = (index, [old_row, new_row], diff_indices[])
 diffs = []
+contains_new_word = False
 
 def parse_old_file(type):
     with open(old_file, "rU") as file:
@@ -39,6 +40,7 @@ def parse_new_file(type):
                 new_audiofile_data.append(row)
 
 def merge_audio():
+    global contains_new_word
     for index, element in enumerate(new_audiofile_data):
         indices = find_all_match_audio(element,
                                        old_audiofile_data)
@@ -62,6 +64,7 @@ def merge_audio():
             merge_data = element
             merge_data[6] = "***FIX ME***"
             audio_merge_data.append(merge_data)
+            contains_new_word = True
             continue
 
         merge_data = old_audiofile_data[olddata_index]
@@ -72,6 +75,7 @@ def merge_audio():
             audio_merge_data.append(merge_data)
 
 def merge_video():
+    global contains_new_word
     for index, element in enumerate(new_videofile_data):
         indicies = find_all_match_video(element,
                                         old_videofile_data)
@@ -94,6 +98,7 @@ def merge_video():
                     merge_data[7] = "***FIX ME***"
                 elif len(merge_data) == 7:
                     merge_data.append("***FIX ME***")
+                contains_new_word = True
             video_merge_data.append(merge_data)
             continue
 
@@ -307,7 +312,9 @@ def diff_match_video(diff, comp_diff):
         return True
     return False
 
-
+def append_to_fix_me_csv():
+    with open(fix_me_csv, "a") as output:
+        output.write("{}\n".format(os.path.basename(new_file)))
 
 if __name__ == "__main__":
     old_file = sys.argv[1]
@@ -315,8 +322,10 @@ if __name__ == "__main__":
     output = sys.argv[3]
 
     batch_process = False
-    if len(sys.argv) == 5:
+    fix_me_csv = ""
+    if len(sys.argv) > 4:
         batch_process = True
+    fix_me_csv = sys.argv[5]
 
     old_file_type = figure_out_filetype(old_file)
     new_file_type = figure_out_filetype(new_file)
@@ -337,9 +346,13 @@ if __name__ == "__main__":
         merge_video()
         rewrite_video_ordinals()
         output_merged_videocsv(output)
+        if contains_new_word:
+            append_to_fix_me_csv()
 
     else:
         merge_audio()
         output_merged_audiocsv(output)
+        if contains_new_word:
+            append_to_fix_me_csv()
 
 

@@ -24,9 +24,9 @@ def find_all_file_groups(start_dir):
             if file_already_in_groups(file, file_groups):
                 continue
 
-            if "newmerge" not in curr_file:
+            if "processed" not in curr_file:
                 for file in files:
-                    if file[0:5] == curr_file[0:5] and "newmerge" in file:
+                    if file[0:5] == curr_file[0:5] and "processed" in file:
                         original_path = os.path.join(root, curr_file)
                         new_path = os.path.join(root, file)
                         group = FileGroup(original_path, new_path)
@@ -48,9 +48,10 @@ def batch_merge_groups(groups):
 
     for group in groups:
         new_filename = os.path.basename(group.original)
+        print "merging: {}".format(new_filename)
         new_filename = new_filename.replace(".csv", "_merged.csv")
         new_filename = os.path.join(output_dir, new_filename)
-        command = ["python", "wordmerge.py", group.original, group.new, new_filename, "--batch"]
+        command = ["python", "wordmerge.py", group.original, group.new, new_filename, "--batch", "files_with_new_words.csv"]
 
         command_string = " ".join(command)
         #print command_string
@@ -68,9 +69,10 @@ def batch_merge_groups(groups):
 
 def output_problem_diffs_csv(problem_diffs):
     with open("problem_files.txt", "wb") as output:
-        for diff in problem_diffs:
-            output.write("{} --- old --- {} -- {}\n".format(diff[1], diff[0][0], diff[0][1][0]))
-            output.write("{} --- new --- {} -- {}\n".format(diff[1], diff[0][0], diff[0][1][1]))
+        for diff_group in problem_diffs:
+            for diff in diff_group[:-1]:
+                output.write("{} --- old --- {} -- {}\n".format(diff_group[-1], diff[0], diff[1][0]))
+                output.write("{} --- new --- {} -- {}\n".format(diff_group[-1], diff[0], diff[1][1]))
 
 if __name__ == "__main__":
 
