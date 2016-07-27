@@ -197,6 +197,10 @@ def output_merged_videocsv(path):
 
 
 def output_audio_diffs():
+    if not diffs:
+        append_to_no_diffs_csv()
+        return
+
     out_path = os.path.join("diffs", os.path.split(new_file)[1].replace(".csv",
                                                                         "_diffs.csv"))
     with open(out_path, "wb") as file:
@@ -211,6 +215,10 @@ def output_audio_diffs():
             writer.writerow([element[0], "new", element[1][1], "-".join(element[2])]+diff_row)
 
 def output_video_diffs():
+    if not diffs:
+        append_to_no_diffs_csv()
+        return
+
     out_path = os.path.join("diffs", os.path.split(new_file)[1].replace(".csv",
                                                                         "_diffs.csv"))
     with open(out_path, "wb") as file:
@@ -316,6 +324,10 @@ def append_to_fix_me_csv():
     with open(fix_me_csv, "a") as output:
         output.write("{}\n".format(os.path.basename(new_file)))
 
+def append_to_no_diffs_csv():
+    with open(diffs_csv, "a") as output:
+        output.write("{}\n".format(os.path.basename(new_file)))
+
 if __name__ == "__main__":
     old_file = sys.argv[1]
     new_file = sys.argv[2]
@@ -323,9 +335,11 @@ if __name__ == "__main__":
 
     batch_process = False
     fix_me_csv = ""
+    diffs_csv = ""
     if len(sys.argv) > 4:
         batch_process = True
-    fix_me_csv = sys.argv[5]
+        fix_me_csv = sys.argv[5]
+        diffs_csv = sys.argv[6]
 
     old_file_type = figure_out_filetype(old_file)
     new_file_type = figure_out_filetype(new_file)
@@ -354,5 +368,3 @@ if __name__ == "__main__":
         output_merged_audiocsv(output)
         if contains_new_word:
             append_to_fix_me_csv()
-
-
