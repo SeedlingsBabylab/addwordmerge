@@ -48,8 +48,8 @@ def batch_merge_groups(groups):
 
     for group in groups:
         new_filename = os.path.basename(group.original)
-        print "merging: {}".format(new_filename)
-        new_filename = new_filename.replace(".csv", "_merged.csv")
+        print "merging: {}      {}".format(new_filename, os.path.basename(group.new))
+        new_filename = new_filename.replace(".csv", "_wordmerged.csv")
         new_filename = os.path.join(output_dir, new_filename)
         command = ["python", "wordmerge.py", group.original, group.new, new_filename, "--batch", "files_with_new_words.csv", "no_diffs.csv"]
 

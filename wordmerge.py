@@ -41,38 +41,81 @@ def parse_new_file(type):
 
 def merge_audio():
     global contains_new_word
-    for index, element in enumerate(new_audiofile_data):
-        indices = find_all_match_audio(element,
+
+    old_groups = []
+    unique_old_groups = []
+
+    old_word_count = 0
+    new_word_count = 0
+
+    fix_me_count_file = open("fix_me_count_audio", "a")
+    fix_me_count = 0
+
+    # if "03_08" in old_file:
+    #     print
+
+    # group all the old entres into identical groups
+    for index, element in enumerate(old_audiofile_data):
+        indices = find_all_match_audio2(element,
                                        old_audiofile_data)
 
-        # find the correct index. elements with the same timestamp could
-        # be different words, with different basic_levels. If there is a
-        # -1 in the indices list, this means this a new entry, not originally
-        # in the old csv file
-        olddata_index = None
-        for index in indices:
-            if index == -1:
-                break
-            if old_audiofile_data[index][1] == element[1]:
-                olddata_index = index
-                # if none of the found timestamps have words equal to the
-                # current element, then this is a new word that happens to
-                # share timestamps with other words. olddata_index is still None
+        old_groups.append(indices)
 
-        # still haven't found it, must be a new entry
-        if olddata_index is None:
+        if indices not in unique_old_groups:
+            unique_old_groups.append(indices)
+            old_word_count += len(indices)
+
+    empty_groups = [group for group in old_groups if len(group) < 1]
+
+
+
+    new_groups = []
+
+    for index, element in enumerate(new_audiofile_data):
+        new_indices = find_all_match_audio2(element,
+                                            new_audiofile_data)
+
+        if "03_08" in old_file and "dots" in element:
+            print
+        if new_indices not in new_groups:
+            new_groups.append(new_indices)
+            new_word_count += len(new_indices)
+
+        old_group = find_group_match_audio2(element, old_groups)
+
+        if not old_group:
             merge_data = element
             merge_data[6] = "***FIX ME***"
-            audio_merge_data.append(merge_data)
+            audio_merge_data.append([merge_data])
+            fix_me_count += 1
             contains_new_word = True
+            #print "found a new word"
             continue
 
-        merge_data = old_audiofile_data[olddata_index]
-        diff_result = diff_audio(index, merge_data, element)
-        if diff_result:
-            audio_merge_data.append(diff_result)
-        else:
-            audio_merge_data.append(merge_data)
+        if len(old_group) > 1:
+            # if 227 in new_indices:
+            #     print "hello"
+            matched, not_matched = group_diff_audio(old_group, new_indices)
+            diff_group = matched + not_matched
+            if len(diff_group) != len(new_indices):
+                print "mismatch: {}    {}".format(new_indices, diff_group)
+            if diff_group not in audio_merge_data:
+                audio_merge_data.append(diff_group)
+            continue
+
+
+        elif len(old_group) == 1:
+            merge_data = old_audiofile_data[old_group[0]]
+            diff_result = diff_audio(index, merge_data, element)
+            if diff_result:
+                if diff_result[1] not in diffs:
+                    diffs.append(diff_result[1])
+                audio_merge_data.append([diff_result[0]])
+            else:
+                audio_merge_data.append([merge_data])
+
+    fix_me_count_file.write("fix_me_count {}: {}\n".format(os.path.basename(old_file)[:5], fix_me_count))
+    fix_me_count_file.close()
 
 def merge_video():
     global contains_new_word
@@ -109,35 +152,182 @@ def merge_video():
         else:
             video_merge_data.append(merge_data)
 
+def merge_video2():
+    global contains_new_word
+
+    old_groups = []
+    unique_old_groups = []
+
+    old_word_count = 0
+    new_word_count = 0
+
+    fix_me_count_file = open("fix_me_count_video", "a")
+    fix_me_count = 0
+
+    # group all the old entres into identical groups
+    for index, element in enumerate(old_videofile_data):
+        indices = find_all_match_video2(element,
+                                       old_videofile_data)
+
+        old_groups.append(indices)
+
+        if indices not in unique_old_groups:
+            unique_old_groups.append(indices)
+            old_word_count += len(indices)
+
+    empty_groups = [group for group in old_groups if len(group) < 1]
+
+
+
+    new_groups = []
+
+    for index, element in enumerate(new_videofile_data):
+        new_indices = find_all_match_video2(element,
+                                            new_videofile_data)
+
+        if new_indices not in new_groups:
+            new_groups.append(new_indices)
+            new_word_count += len(new_indices)
+
+        old_group = find_group_match_video2(element, old_groups)
+
+        if not old_group:
+            merge_data = element
+            merge_data[7] = "***FIX ME***"
+            video_merge_data.append([merge_data])
+            contains_new_word = True
+            fix_me_count += 1
+            continue
+
+        if len(old_group) > 1:
+            matched, not_matched = group_diff_video(old_group, new_indices)
+            diff_group = matched + not_matched
+            if len(diff_group) != len(new_indices):
+                print "mismatch: {}    {}".format(new_indices, diff_group)
+            if diff_group not in video_merge_data:
+                video_merge_data.append(diff_group)
+            continue
+
+
+        elif len(old_group) == 1:
+            merge_data = old_videofile_data[old_group[0]]
+            diff_result = diff_video(index, merge_data, element)
+            if diff_result:
+                if diff_result[1] not in diffs:
+                    diffs.append(diff_result[1])
+                video_merge_data.append([diff_result[0]])
+            else:
+                video_merge_data.append([merge_data])
+
+    fix_me_count_file.write("fix_me_count {}: {}\n".format(os.path.basename(old_file)[:5], fix_me_count))
+    fix_me_count_file.close()
+
 def find_all_match_audio(entry, data):
     found =[]
-    for index, element in enumerate(data):
+    for old_index, element in enumerate(data):
         if audio_match(entry, element):
-            found.append(index)
+            found.append(old_index)
     if not found:
         found.append(-1)
     return found
 
+def find_all_match_audio2(entry, data):
+    found =[]
+    for old_index, element in enumerate(data):
+        if audio_match2(entry, element):
+            found.append(old_index)
+    if not found:
+        found.append(-1)
+    return found
+
+def find_group_match_audio(entry, groups):
+    for group_index, group in enumerate(groups):
+        if audio_match(entry, old_audiofile_data[group[0]]):
+            return group
+    return False
+
+def find_group_match_audio2(entry, groups):
+    for group_index, group in enumerate(groups):
+        if audio_match2(entry, old_audiofile_data[group[0]]):
+            return group
+    return False
+
+def find_group_match_video(entry, groups):
+    for group_index, group in enumerate(groups):
+        if video_match(entry, old_videofile_data[group[0]]):
+            return group
+    return False
+
+def find_group_match_video2(entry, groups):
+    for group_index, group in enumerate(groups):
+        if video_match2(entry, old_videofile_data[group[0]]):
+            return group
+    return False
+
 def find_all_match_video(entry, data):
     found =[]
-    for index, element in enumerate(data):
+    for old_index, element in enumerate(data):
         if video_match(entry, element):
-            found.append(index)
+            found.append(old_index)
+    if not found:
+        found.append(-1)
+    return found
+
+def find_all_match_video2(entry, data):
+    found =[]
+    for old_index, element in enumerate(data):
+        if video_match2(entry, element):
+            found.append(old_index)
     if not found:
         found.append(-1)
     return found
 
 def audio_match(new_item, old_item):
     if new_item[0] == old_item[0] and \
-       new_item[1] == old_item[1] and \
+       new_item[1].lower() == old_item[1].lower() and \
        new_item[5] == old_item[5]:
+        return True
+    return False
+
+
+def audio_match2(new_item, old_item):
+    split_new_time = new_item[5].split("_")
+    split_old_time = old_item[5].split("_")
+    if new_item[1].lower() == old_item[1].lower() and \
+       soft_time_match(split_old_time, split_new_time):
+        return True
+    return False
+
+def soft_time_match(old, new):
+    if old[0] == new[0] and old[1] == new[1]:
+        return True
+    if old[0] == new[0]:
+        return True
+    if old[1] == new[1]:
+        return True
+    if old[0] > new[0] and old[0] < new[1]:
+        return True
+    if old[1] > new[0] and old[1] < new[1]:
+        return True
+    if new[0] > old[0] and new[0] < old[1]:
+        return True
+    if new[1] > old[0] and new[1] < old[1]:
         return True
     return False
 
 def video_match(new_item, old_item):
     if new_item[1] == old_item[1] and \
        new_item[2] == old_item[2] and \
-       new_item[3] == old_item[3]:
+       new_item[3].lower() == old_item[3].lower():
+        return True
+    return False
+
+def video_match2(new_item, old_item):
+    old_time = [old_item[1], old_item[2]]
+    new_time = [new_item[1], new_item[2]]
+
+    if soft_time_match(old_time, new_time) and \
+       new_item[3].lower() == old_item[3].lower():
         return True
     return False
 
@@ -147,7 +337,10 @@ def output_merged_audiocsv(path):
         writer.writerow(["tier", "word", "utterance_type",
                         "object_present", "speaker", "timestamp",
                         "basic_level"])
-        writer.writerows(audio_merge_data)
+        for group in audio_merge_data:
+            for element in group:
+                writer.writerow(element)
+        #writer.writerows(audio_merge_data)
 
     if diffs and not batch_process:
         print "\nThere were other changes in the new file besides additions"
@@ -219,7 +412,7 @@ def output_video_diffs():
         append_to_no_diffs_csv()
         return
 
-    out_path = os.path.join("diffs", os.path.split(new_file)[1].replace(".csv",
+    out_path = os.path.join("diffs", os.path.basename(new_file).replace(".csv",
                                                                         "_diffs.csv"))
     with open(out_path, "wb") as file:
         writer = csv.writer(file)
@@ -251,40 +444,142 @@ def figure_out_filetype(file):
     if audio_csv:
         return "audio"
 
-def diff_audio(line, old, new):
+def diff_audio(line_index, old, new):
     diff_indices = []
-    for index, element in enumerate(old):
+    for index, element in enumerate(old[:6]):
         if new[index] != element and index != 6:
             diff_indices.append(str(index))
     if diff_indices:
-        diffs.append((line, [old, new], diff_indices))
+        diff_info = (line_index, [old, new], diff_indices)
+        #diffs.append((line_index, [old, new], diff_indices))
         new[6] = old[6]
-        return new
+        return (new, diff_info)
     else:
+        new[6] = old[6]
         return None
 
-def diff_video(line, old, new):
+def group_diff_audio(old, new):
+    matched = []
+    not_matched = []
+
+    old_group = old[:]
+    new_group = new[:]
+
+    old_count = len(old_group)
+    new_count = len(new_group)
+
+    while not group_match_condition(matched, not_matched, old_count, new_count):
+        if len(old_group) == 0:
+            for i in new_group:
+                new_audiofile_data[i][6] = "***FIX ME***"
+                not_matched.append(new_audiofile_data[i])
+            break
+        for new_index, new_element_index in enumerate(new_group):
+            new_element = new_audiofile_data[new_element_index]
+
+            for old_index, old_element_index in enumerate(old_group):
+                old_element = old_audiofile_data[old_element_index]
+                diff_result = diff_audio(new_index, old_element, new_element)
+                if not diff_result:
+                    matched.append(new_element)
+                    del old_group[old_index]
+                    del new_group[new_index]
+                    break
+                elif old_index == len(old_group) - 1:
+                    if diff_result[1] not in diffs:
+                        diffs.append(diff_result[1])
+                    not_matched.append(new_element)
+                    del old_group[old_index]
+                    del new_group[new_index]
+                    if len(old_group) == 0:
+                        for i in new_group:
+                            new_audiofile_data[i][6] = "***FIX ME***"
+                            not_matched.append(new_audiofile_data[i])
+                        return (matched, not_matched)
+
+    #not_matched = [new_audiofile_data[index] for index in new_group if new_audiofile_data[index] not in matched]
+
+    return (matched, not_matched)
+
+def group_match_condition(matched, not_matched, old, new):
+    if len(matched) == new:
+        return True
+    if len(matched + not_matched) == new:
+        return True
+    return False
+
+
+def diff_video(line_index, old, new):
     diff_indices = []
     for index, element in enumerate(old[:7]):
         if new[index] != element and index != 7 and index != 0:
             diff_indices.append(str(index))
     if diff_indices:
-        diffs.append((line, [old, new], diff_indices))
+        diff_info = (line_index, [old, new], diff_indices)
+        #diffs.append((line_index, [old, new], diff_indices))
         if len(new) == 8:
             new[7] = old[7]
         elif len(new) == 7:
             new.append(old[7])
-        return new
+        return (new, diff_info)
     else:
+        if len(new) == 8:
+            new[7] = old[7]
+        elif len(new) == 7:
+            new.append(old[7])
         return None
+
+def group_diff_video(old, new):
+    matched = []
+    not_matched = []
+
+    old_group = old[:]
+    new_group = new[:]
+
+    old_count = len(old_group)
+    new_count = len(new_group)
+
+    while not group_match_condition(matched, not_matched, old_count, new_count):
+        if len(old_group) == 0:
+            for i in new_group:
+                new_videofile_data[i][7] = "***FIX ME***"
+                not_matched.append(new_videofile_data[i])
+            break
+        for new_index, new_element_index in enumerate(new_group):
+            new_element = new_videofile_data[new_element_index]
+
+            for old_index, old_element_index in enumerate(old_group):
+                old_element = old_videofile_data[old_element_index]
+                diff_result = diff_video(new_index, old_element, new_element)
+                if not diff_result:
+                    matched.append(new_element)
+                    del old_group[old_index]
+                    del new_group[new_index]
+                    break
+                elif old_index == len(old_group) - 1:
+                    if diff_result[1] not in diffs:
+                        diffs.append(diff_result[1])
+                    not_matched.append(new_element)
+                    del old_group[old_index]
+                    del new_group[new_index]
+                    if len(old_group) == 0:
+                        for i in new_group:
+                            new_videofile_data[i][7] = "***FIX ME***"
+                            not_matched.append(new_videofile_data[i])
+                        return (matched, not_matched)
+
+    return (matched, not_matched)
 
 def rewrite_video_ordinals():
     global video_merge_data
-    sorted_data = sorted(video_merge_data, key=lambda data: int(data[1]))
+    sorted_data = sorted(video_merge_data, key=lambda data: int(data[0][1]))
     new_data = []
+    i = 0
     for index, value in enumerate(sorted_data):
-        value[0] = str(index)
-        new_data.append(value)
+        for element in value:
+            element[0] = i
+            i += 1
+            new_data.append(element)
 
     video_merge_data = new_data
 
@@ -319,6 +614,7 @@ def diff_match_video(diff, comp_diff):
        diff[1][0][3] == comp_diff[1][0][3]:
         return True
     return False
+
 
 def append_to_fix_me_csv():
     with open(fix_me_csv, "a") as output:
@@ -357,7 +653,7 @@ if __name__ == "__main__":
     # print "new_file_type = " + new_file_type
 
     if old_file_type == "video":
-        merge_video()
+        merge_video2()
         rewrite_video_ordinals()
         output_merged_videocsv(output)
         if contains_new_word:
@@ -366,5 +662,5 @@ if __name__ == "__main__":
     else:
         merge_audio()
         output_merged_audiocsv(output)
-        if contains_new_word:
+        if contains_new_word and batch_process:
             append_to_fix_me_csv()
