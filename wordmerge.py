@@ -75,8 +75,7 @@ def merge_audio():
         new_indices = find_all_match_audio2(element,
                                             new_audiofile_data)
 
-        if "03_08" in old_file and "dots" in element:
-            print
+
         if new_indices not in new_groups:
             new_groups.append(new_indices)
             new_word_count += len(new_indices)
@@ -89,12 +88,9 @@ def merge_audio():
             audio_merge_data.append([merge_data])
             fix_me_count += 1
             contains_new_word = True
-            #print "found a new word"
             continue
 
         if len(old_group) > 1:
-            # if 227 in new_indices:
-            #     print "hello"
             matched, not_matched = group_diff_audio(old_group, new_indices)
             diff_group = matched + not_matched
             if len(diff_group) != len(new_indices):
@@ -103,54 +99,40 @@ def merge_audio():
                 audio_merge_data.append(diff_group)
             continue
 
-
         elif len(old_group) == 1:
             merge_data = old_audiofile_data[old_group[0]]
             diff_result = diff_audio(index, merge_data, element)
             if diff_result:
                 if diff_result[1] not in diffs:
                     diffs.append(diff_result[1])
-                audio_merge_data.append([diff_result[0]])
+                    diffed_entry = diff_result[0]
+                    audio_merge_data.append([diffed_entry[:7]])
             else:
+                merge_data[1] = element[1]
+                if "+" in merge_data[1] and not merge_data[1][0].islower():
+                    merge_data[6] = element[6].lower().capitalize()
+                if any(not x.islower() for x in merge_data[6]):
+                    cap_x, cap_y = number_of_capitals(merge_data[1], merge_data[6])
+                    if cap_x != cap_y:
+                        merge_data[6] = merge_data[1]
+
+
                 audio_merge_data.append([merge_data])
 
     fix_me_count_file.write("fix_me_count {}: {}\n".format(os.path.basename(old_file)[:5], fix_me_count))
     fix_me_count_file.close()
 
-def merge_video():
-    global contains_new_word
-    for index, element in enumerate(new_videofile_data):
-        indicies = find_all_match_video(element,
-                                        old_videofile_data)
-        olddata_index = None
-        for index in indicies:
-            if index == -1:
-                break
-            if old_videofile_data[index][3] == element[3]:
-                olddata_index = index
+def number_of_capitals(x, y):
+    num_x = 0
+    num_y = 0
 
-        if olddata_index is None:
-            merge_data = element
-            if "%com" in merge_data[3]:
-                if len(merge_data) == 8:
-                    merge_data[7] = "NA"
-                elif len(merge_data) == 7:
-                    merge_data.append("NA")
-            else:
-                if len(merge_data) == 8:
-                    merge_data[7] = "***FIX ME***"
-                elif len(merge_data) == 7:
-                    merge_data.append("***FIX ME***")
-                contains_new_word = True
-            video_merge_data.append(merge_data)
-            continue
-
-        merge_data = old_videofile_data[olddata_index]
-        diff_result = diff_video(index, merge_data, element)
-        if diff_result:
-            video_merge_data.append(diff_result)
-        else:
-            video_merge_data.append(merge_data)
+    for ch in x:
+        if not ch.islower():
+            num_x += 1
+    for ch in y:
+        if not ch.islower():
+            num_y += 1
+    return (num_x, num_y)
 
 def merge_video2():
     global contains_new_word
@@ -185,6 +167,7 @@ def merge_video2():
         new_indices = find_all_match_video2(element,
                                             new_videofile_data)
 
+
         if new_indices not in new_groups:
             new_groups.append(new_indices)
             new_word_count += len(new_indices)
@@ -215,8 +198,18 @@ def merge_video2():
             if diff_result:
                 if diff_result[1] not in diffs:
                     diffs.append(diff_result[1])
+
                 video_merge_data.append([diff_result[0]])
             else:
+                merge_data[3] = element[3]
+                if "+" in merge_data[3] and not merge_data[3][0].islower():
+                    #merge_data[3] = element[3]
+                    merge_data[7] = element[7].lower().capitalize()
+                if any(not x.islower() for x in merge_data[7]):
+                    cap_x, cap_y = number_of_capitals(merge_data[3], merge_data[7])
+                    if cap_x != cap_y:
+                        merge_data[7] = merge_data[3]
+
                 video_merge_data.append([merge_data])
 
     fix_me_count_file.write("fix_me_count {}: {}\n".format(os.path.basename(old_file)[:5], fix_me_count))
@@ -290,9 +283,10 @@ def audio_match(new_item, old_item):
     return False
 
 
+
 def audio_match2(new_item, old_item):
-    split_new_time = new_item[5].split("_")
-    split_old_time = old_item[5].split("_")
+    split_new_time = map(int, new_item[5].split("_"))
+    split_old_time = map(int, old_item[5].split("_"))
     if new_item[1].lower() == old_item[1].lower() and \
        soft_time_match(split_old_time, split_new_time):
         return True
@@ -323,8 +317,8 @@ def video_match(new_item, old_item):
     return False
 
 def video_match2(new_item, old_item):
-    old_time = [old_item[1], old_item[2]]
-    new_time = [new_item[1], new_item[2]]
+    old_time = map(int, [old_item[1], old_item[2]])
+    new_time = map(int, [new_item[1], new_item[2]])
 
     if soft_time_match(old_time, new_time) and \
        new_item[3].lower() == old_item[3].lower():
@@ -339,6 +333,9 @@ def output_merged_audiocsv(path):
                         "basic_level"])
         for group in audio_merge_data:
             for element in group:
+                if len(element) == 8:
+                    if element[7] == "NA":
+                        element[7] = ""
                 writer.writerow(element)
         #writer.writerows(audio_merge_data)
 
@@ -448,14 +445,31 @@ def diff_audio(line_index, old, new):
     diff_indices = []
     for index, element in enumerate(old[:6]):
         if new[index] != element and index != 6:
+            if index == 1 and new[index].lower() == element.lower():
+                continue
             diff_indices.append(str(index))
     if diff_indices:
         diff_info = (line_index, [old, new], diff_indices)
-        #diffs.append((line_index, [old, new], diff_indices))
-        new[6] = old[6]
+
+        if "+" in old[6] and not old[6][0].islower():
+            new[6] = old[6].lower().capitalize()
+        else:
+            new[6] = old[6]
+            if any(not x.islower() for x in old[6]):
+                cap_x, cap_y = number_of_capitals(new[1], old[6])
+                if cap_x != cap_y:
+                    new[6] = new[1]
+
         return (new, diff_info)
     else:
-        new[6] = old[6]
+        if "+" in old[6] and not old[6][0].islower():
+            new[6] = old[6].lower().capitalize()
+        else:
+            new[6] = old[6]
+            if any(not x.islower() for x in old[6]):
+                cap_x, cap_y = number_of_capitals(new[1], old[6])
+                if cap_x != cap_y:
+                    new[6] = new[1]
         return None
 
 def group_diff_audio(old, new):
@@ -513,20 +527,47 @@ def diff_video(line_index, old, new):
     diff_indices = []
     for index, element in enumerate(old[:7]):
         if new[index] != element and index != 7 and index != 0:
+            if index == 3 and new[index].lower() == element.lower():
+                continue
             diff_indices.append(str(index))
     if diff_indices:
         diff_info = (line_index, [old, new], diff_indices)
-        #diffs.append((line_index, [old, new], diff_indices))
         if len(new) == 8:
             new[7] = old[7]
+            if "+" in old[7] and not old[7][0].islower():
+                new[7] = old[7].lower().capitalize()
+            if any(not x.islower() for x in old[7]):
+                cap_x, cap_y = number_of_capitals(new[3], old[7])
+                if cap_x != cap_y:
+                    new[7] = new[3]
         elif len(new) == 7:
-            new.append(old[7])
+            if "+" in old[7] and not old[7][0].islower():
+                new.append(old[7].lower().capitalize())
+            elif any(not x.islower() for x in old[7]):
+                cap_x, cap_y = number_of_capitals(new[3], old[7])
+                if cap_x != cap_y:
+                    new.append(new[3])
+            else:
+                new.append(old[7])
         return (new, diff_info)
     else:
         if len(new) == 8:
             new[7] = old[7]
+            if "+" in old[7] and not old[7][0].islower():
+                new[7] = old[7].lower().capitalize()
+            if any(not x.islower() for x in old[7]):
+                cap_x, cap_y = number_of_capitals(new[3], old[7])
+                if cap_x != cap_y:
+                    new[7] = new[3]
         elif len(new) == 7:
-            new.append(old[7])
+            if "+" in old[7] and not old[7][0].islower():
+                new.append(old[7].lower().capitalize())
+            elif any(not x.islower() for x in old[7]):
+                cap_x, cap_y = number_of_capitals(new[3], old[7])
+                if cap_x != cap_y:
+                    new.append(new[3])
+            else:
+                new.append(old[7])
         return None
 
 def group_diff_video(old, new):
@@ -564,8 +605,9 @@ def group_diff_video(old, new):
                     del new_group[new_index]
                     if len(old_group) == 0:
                         for i in new_group:
-                            new_videofile_data[i][7] = "***FIX ME***"
-                            not_matched.append(new_videofile_data[i])
+                            the_entry = new_videofile_data[i]
+                            the_entry[7] = "***FIX ME***"
+                            not_matched.append(the_entry)
                         return (matched, not_matched)
 
     return (matched, not_matched)
@@ -577,11 +619,24 @@ def rewrite_video_ordinals():
     i = 0
     for index, value in enumerate(sorted_data):
         for element in value:
+            # if element[0] != i:
+            #     print i
             element[0] = i
             i += 1
             new_data.append(element)
 
     video_merge_data = new_data
+
+# def rewrite_video_ordinals2():
+#     global video_merge_data
+#     sorted_data = sorted(video_merge_data, key=lambda data: int(data[1]))
+#     new_data = []
+#
+#     for index, entry in enumerate(sorted_data):
+#         entry[0] = index
+#         new_data.append(entry)
+#
+#     video_merge_data = new_data
 
 def find_problem_diffs_audio():
     problems = []
@@ -624,6 +679,16 @@ def append_to_no_diffs_csv():
     with open(diffs_csv, "a") as output:
         output.write("{}\n".format(os.path.basename(new_file)))
 
+#
+# def flatten_video_merge_data():
+#     global video_merge_data
+#     new_data = []
+#     for group in video_merge_data:
+#         for element in group:
+#             if element not in new_data:
+#                 new_data.append(element)
+#     video_merge_data = new_data
+
 if __name__ == "__main__":
     old_file = sys.argv[1]
     new_file = sys.argv[2]
@@ -654,6 +719,8 @@ if __name__ == "__main__":
 
     if old_file_type == "video":
         merge_video2()
+        #flatten_video_merge_data()
+        #rewrite_video_ordinals2()
         rewrite_video_ordinals()
         output_merged_videocsv(output)
         if contains_new_word:

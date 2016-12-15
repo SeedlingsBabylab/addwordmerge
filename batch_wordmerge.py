@@ -62,7 +62,6 @@ def batch_merge_groups(groups):
             result = eval(out)
             result.append(os.path.basename(group.original))
             problem_diffs.append(result)
-        #print out
 
     output_problem_diffs_csv(problem_diffs)
 
