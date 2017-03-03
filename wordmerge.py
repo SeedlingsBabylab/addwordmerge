@@ -111,11 +111,10 @@ def merge_audio():
                 merge_data[1] = element[1]
                 if "+" in merge_data[1] and not merge_data[1][0].islower():
                     merge_data[6] = element[6].lower().capitalize()
-                if any(not x.islower() for x in merge_data[6]):
+                if merge_data[6] != "NA" and any(not x.islower() for x in merge_data[6]):
                     cap_x, cap_y = number_of_capitals(merge_data[1], merge_data[6])
                     if cap_x != cap_y:
                         merge_data[6] = merge_data[1]
-
 
                 audio_merge_data.append([merge_data])
 
@@ -455,7 +454,7 @@ def diff_audio(line_index, old, new):
             new[6] = old[6].lower().capitalize()
         else:
             new[6] = old[6]
-            if any(not x.islower() for x in old[6]):
+            if old[6] != "NA" and any(not x.islower() for x in old[6]):
                 cap_x, cap_y = number_of_capitals(new[1], old[6])
                 if cap_x != cap_y:
                     new[6] = new[1]
@@ -466,7 +465,7 @@ def diff_audio(line_index, old, new):
             new[6] = old[6].lower().capitalize()
         else:
             new[6] = old[6]
-            if any(not x.islower() for x in old[6]):
+            if old[6] != "NA" and any(not x.islower() for x in old[6]):
                 cap_x, cap_y = number_of_capitals(new[1], old[6])
                 if cap_x != cap_y:
                     new[6] = new[1]
@@ -536,14 +535,14 @@ def diff_video(line_index, old, new):
             new[7] = old[7]
             if "+" in old[7] and not old[7][0].islower():
                 new[7] = old[7].lower().capitalize()
-            if any(not x.islower() for x in old[7]):
+            if old[7] != "NA" and any(not x.islower() for x in old[7]):
                 cap_x, cap_y = number_of_capitals(new[3], old[7])
                 if cap_x != cap_y:
                     new[7] = new[3]
         elif len(new) == 7:
             if "+" in old[7] and not old[7][0].islower():
                 new.append(old[7].lower().capitalize())
-            elif any(not x.islower() for x in old[7]):
+            elif old[7] != "NA" and any(not x.islower() for x in old[7]):
                 cap_x, cap_y = number_of_capitals(new[3], old[7])
                 if cap_x != cap_y:
                     new.append(new[3])
@@ -555,14 +554,14 @@ def diff_video(line_index, old, new):
             new[7] = old[7]
             if "+" in old[7] and not old[7][0].islower():
                 new[7] = old[7].lower().capitalize()
-            if any(not x.islower() for x in old[7]):
+            if old[7] != "NA" and any(not x.islower() for x in old[7]):
                 cap_x, cap_y = number_of_capitals(new[3], old[7])
                 if cap_x != cap_y:
                     new[7] = new[3]
         elif len(new) == 7:
             if "+" in old[7] and not old[7][0].islower():
                 new.append(old[7].lower().capitalize())
-            elif any(not x.islower() for x in old[7]):
+            elif old[7] != "NA" and any(not x.islower() for x in old[7]):
                 cap_x, cap_y = number_of_capitals(new[3], old[7])
                 if cap_x != cap_y:
                     new.append(new[3])
@@ -723,7 +722,7 @@ if __name__ == "__main__":
         #rewrite_video_ordinals2()
         rewrite_video_ordinals()
         output_merged_videocsv(output)
-        if contains_new_word:
+        if contains_new_word and batch_process:
             append_to_fix_me_csv()
 
     else:
