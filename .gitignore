@@ -3,3 +3,8 @@
 .idea
 /diffs/*.csv
 *.csv
+.ropeproject
+.tags
+fix_me_count_video
+inputs
+output

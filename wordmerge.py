@@ -204,7 +204,7 @@ def merge_video2():
                 if "+" in merge_data[3] and not merge_data[3][0].islower():
                     #merge_data[3] = element[3]
                     merge_data[7] = element[7].lower().capitalize()
-                if any(not x.islower() for x in merge_data[7]):
+                if any(not x.islower() for x in merge_data[7]) and merge_data[7] != "NA":
                     cap_x, cap_y = number_of_capitals(merge_data[3], merge_data[7])
                     if cap_x != cap_y:
                         merge_data[7] = merge_data[3]
@@ -523,6 +523,8 @@ def group_match_condition(matched, not_matched, old, new):
 
 
 def diff_video(line_index, old, new):
+    if old[3].startswith("%com"):
+        print
     diff_indices = []
     for index, element in enumerate(old[:7]):
         if new[index] != element and index != 7 and index != 0:
